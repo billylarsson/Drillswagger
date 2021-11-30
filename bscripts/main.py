@@ -18,6 +18,7 @@ import requests
 import screeninfo
 import subprocess
 
+
 class MainClaw(QtWidgets.QMainWindow):
 
     def __init__(self):
@@ -671,13 +672,88 @@ class MainClaw(QtWidgets.QMainWindow):
             elif self.config:
                 self.config.hide()
 
+    class ABOUT(Resolution):
+        def show_about(self):
+            if self.about:
+                self.about.show()
+                return
+
+            class About(GODLabel):
+                def drag_widget(self, ev):
+                    if not self.old_position:
+                        self.old_position = ev.globalPos()
+
+                    delta = QtCore.QPoint(ev.globalPos() - self.old_position)
+                    self.move(self.x() + delta.x(), self.y() + delta.y())
+                    self.old_position = ev.globalPos()
+
+                def mouseMoveEvent(self, ev: QtGui.QMouseEvent) -> None:
+                    self.drag_widget(ev)
+
+                def mousePressEvent(self, ev: QtGui.QMouseEvent) -> None:
+                    if ev.button() == 2:
+                        self.parent.activation_toggle(force=False)
+                        self.hide()
+                        return
+
+                    self.raise_()
+                    self.old_position = ev.globalPos()
+
+            self.about = About(place=self.main, qframebox=True, parent=self)
+            t.style(self.about, background=GRAY, color=BLACK)
+            t.pos(self.about, move=[200,100], size=[440,600])
+            self.label = GODLabel(place=self.about, qframebox=True)
+            self.label.setWordWrap(True)
+            t.pos(self.label, inside=self.about, margin=5)
+            t.style(self.label, background=WHITE, color=BLACK)
+
+            text = "Updating IMDb database shouldnt really be nessesary more than once a month."
+            text += "\n\nThe program has an internal cache, if you experience strange behaviour, you might want to drop 'cache', 'skiplist' and 'covers' from database.sqlite, or even delete the entire file and start fresh."
+            text += "\n\nRight clicking a cover fortifies it so it will not be cleared inbetween searches, this alos displays the Download button and the Skipbutton. Adding to skiplist will skip that torrent_id and IMDb tconst (if present) forever and ever."
+            text += "\n\nI'm assuming this may not work very well with Windows due to subprocessing required to serialize the data correctly to the swagger API (at least I'm not smart enough to figure that part out without using subprocesses)."
+
+            a = 'bc1q0g3qmnercc248qkagmv6pvvvw068fheafqjzg9'
+
+            self.label.setText(text)
+            self.label.setAlignment(QtCore.Qt.AlignTop)
+
+            qrimg = t.create_qrcode_image()
+            if qrimg and os.path.exists(qrimg):
+                pixmap = QtGui.QPixmap(qrimg)
+                pixmap_label = GODLabel(place=self.about)
+                t.pos(pixmap_label, size=pixmap)
+                y = self.about.height() - pixmap.height() - 30
+                t.pos(pixmap_label, center=[0, self.about.width()], move=[0, y])
+                pixmap_label.setPixmap(pixmap)
+                btclabel = GODLabel(place=self.about, center=True)
+                btclabel.setText(a)
+                btclabel.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
+                t.shrink_label_to_text(btclabel)
+                t.pos(btclabel, below=pixmap_label, center=[0, self.about.width()], y_margin=-5)
+
+        def mousePressEvent(self, ev: QtGui.QMouseEvent) -> None:
+            self.activation_toggle()
+            if self.activated:
+                self.show_about()
+            elif self.about:
+                self.about.hide()
+
+    def about_this_thing(self):
+        self.about = self.ABOUT(place=self, mouse=True, main=self, parent=self, center=True)
+        self.about.setText('  ')
+        self.about.activation_toggle(force=False, save=False)
+        self.about.about = False
+        self.about.old_position = False
+        t.pos(self.about, coat=self.searcher, after=self.searcher)
+        t.shrink_label_to_text(self.about)
+
     def create_config(self):
         """ currently only login and password, so the plate is currently to much, but in case we expand its good """
         self.config = self.Config(place=self, main=self, mouse=True, center=True)
         self.config.activation_toggle(force=False, save=False)
         self.config.setText('CONFIG')
         t.shrink_label_to_text(self.config, x_margin=10)
-        t.pos(self.config, height=self.searcher, after=self.searcher, x_margin=1)
+        t.pos(self.config, height=self.searcher, after=self.about, x_margin=1)
 
     def create_resolutions(self):
         RV = self.get_fields()
@@ -775,6 +851,7 @@ class MainClaw(QtWidgets.QMainWindow):
         self.setup_gui() # scrollarea
         self.create_searcher() # search bar
         self.create_update_db_button() # IMDb
+        self.about_this_thing()
         self.create_config() # login/password
         self.create_leech_categories() # free leech stuff
         self.create_resolutions() # 720p 1080p etc
