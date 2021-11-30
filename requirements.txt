@@ -1,0 +1,5 @@
+Pillow==8.4.0
+PyQt5==5.15.6
+requests==2.26.0
+screeninfo==0.7
+SQLAlchemy==1.4.23
