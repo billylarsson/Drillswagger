@@ -777,7 +777,7 @@ class CoverWidget(GODLabel):
             if not self.cover_path:
                 t.start_thread(
                     slave_fn=self.download_imdb_cover,
-                    slave_args=db_input,
+                    slave_kwargs=dict(db_input=db_input),
                     master_fn=download_cover_then_set,
                     master_args=(self, db_input,)
                 )
@@ -872,7 +872,8 @@ class CoverWidget(GODLabel):
             self.rating_widget.gather_rating(data[0]) # todo avoid these hacks
 
             if not self.get_cover_from_cache(db_input=data[0], download=False): # False, dont want to use main thread
-                t.start_thread(self.download_imdb_cover, slave_args=data[0], master_fn=another_hack, master_args=self)
+                t.start_thread(self.download_imdb_cover,
+                               slave_kwargs=dict(db_input=(data[0])), master_fn=another_hack, master_args=self)
             else:
                 another_hack(self)
         else:
