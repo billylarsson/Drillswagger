@@ -2,6 +2,7 @@ from PyQt5                     import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore              import Qt
 from PyQt5.QtGui               import QKeySequence
 from PyQt5.QtWidgets           import QShortcut
+from bscripts.appapi           import api_calls, api_help_print
 from bscripts.cover_widget     import CoverWidget
 from bscripts.database_stuff   import DB, sqlite
 from bscripts.imdb_database    import RefreshImdb
@@ -13,7 +14,7 @@ from functools                 import partial
 import datetime
 import json
 import math
-import os
+import os, sys
 import requests
 import screeninfo
 import subprocess
@@ -39,7 +40,21 @@ class MainClaw(QtWidgets.QMainWindow):
         self.position_mainwindow()
         self.draw_more_shortcut = QShortcut(QKeySequence(Qt.Key_Space), self)
         self.draw_more_shortcut.activated.connect(self.draw_results)
-        t.start_thread(dummy=True, slave_args=0.25, master_fn=self.post_init)
+
+        init_fn = [self.post_init]
+        if len(sys.argv) > 1 and [x for x in sys.argv if '--' in x]:
+            init_fn.append(self.subprocess_api)
+        else:
+            self.show()
+
+        t.start_thread(dummy=True, slave_args=0.25, master_fn=init_fn)
+
+    def subprocess_api(self):
+        if '--help' in sys.argv:
+            api_help_print()
+
+        api_calls(self)
+        sys.exit()
 
     def setup_gui(self):
         """ creates scroll area """
